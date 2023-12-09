@@ -107,3 +107,11 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+AUTH_USER_MODEL = "reviews.CustomUser"
+
+LENGTH_150_CHAR: int = 150
+
+LENGTH_256_CHAR: int = 256
+
+CANT_USED_IN_USERNAME: str = 'me'
