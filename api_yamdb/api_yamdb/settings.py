@@ -108,7 +108,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-AUTH_USER_MODEL = "reviews.CustomUser"
+AUTH_USER_MODEL = 'reviews.CustomUser'
 
 LENGTH_150_CHAR: int = 150
 
