@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     # 'django_filters',
     'api.apps.ApiConfig',
     'reviews.apps.ReviewsConfig',
+    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -108,10 +109,18 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-AUTH_USER_MODEL = 'reviews.CustomUser'
+AUTH_USER_MODEL = 'users.CustomUser'
+
+MAX_LENGTH: int = 30
+
+LENGTH_50_CHAR: int = 50
 
 LENGTH_150_CHAR: int = 150
 
 LENGTH_256_CHAR: int = 256
+
+SCORE_MIN: int = 1
+
+SCORE_MAX: int = 10
 
 CANT_USED_IN_USERNAME: str = 'me'
