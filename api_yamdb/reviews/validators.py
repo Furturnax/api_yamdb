@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
 
 
@@ -9,3 +11,26 @@ def username_validator(value):
             f'Использовать {settings.CANT_USED_IN_USERNAME} как '
             'username запрещено.'
         )
+
+
+def year_validator(value):
+    """Валидатор вводимого года."""
+    current_year = now().year
+    if value > current_year:
+        raise ValidationError('Год не может быть позже текущего года.')
+
+
+def score_min_validator(value):
+    """Валидатор минимальной оценки."""
+    return MinValueValidator(
+        settings.SCORE_MIN,
+        message=f'Нельзя поставить оценку ниже {settings.SCORE_MIN}.',
+    )(value)
+
+
+def score_max_validator(value):
+    """Валидатор максимальной оценки."""
+    return MaxValueValidator(
+        settings.SCORE_MAX,
+        message=f'Нельзя поставить оценку выше {settings.SCORE_MAX}.',
+    )(value)
