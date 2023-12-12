@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from reviews.validators import username_validator
+from core.validators import username_validator
 from users.enums import Roles
 
 

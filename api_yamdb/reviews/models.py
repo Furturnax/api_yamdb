@@ -1,33 +1,12 @@
 from django.conf import settings
 from django.db import models
-from users.models import CustomUser
 
-from reviews.validators import (
+from core.models import NameSlugModel, TextAuthorPubdateModel
+from core.validators import (
     score_max_validator,
     score_min_validator,
     year_validator
 )
-
-
-class NameSlugModel(models.Model):
-    """Модель абстрактного класса NameSlug."""
-
-    name = models.CharField(
-        'Название',
-        max_length=settings.LENGTH_256_CHAR,
-    )
-    slug = models.SlugField(
-        'Slug категории',
-        max_length=settings.LENGTH_50_CHAR,
-        unique=True,
-    )
-
-    class Meta:
-        abstract = True
-        ordering = ('name',)
-
-    def __str__(self):
-        return (f'{self.name[:settings.MAX_LENGTH]} - {self.slug}')
 
 
 class Category(NameSlugModel):
@@ -110,27 +89,6 @@ class GenreTitle(models.Model):
 
     def __str__(self):
         return (f'{self.title.name} - {self.genre.name}')
-
-
-class TextAuthorPubdateModel(models.Model):
-    """Модель абстрактного класса TextAuthorPubdateModel."""
-
-    text = models.TextField(
-        'Текст',
-    )
-    author = models.ForeignKey(
-        CustomUser,
-        verbose_name='Автор',
-        on_delete=models.CASCADE,
-    )
-    pub_date = models.DateTimeField(
-        'Дата публикации',
-        auto_now_add=True,
-    )
-
-    class Meta:
-        abstract = True
-        ordering = ('pub_date',)
 
 
 class Review(TextAuthorPubdateModel):
