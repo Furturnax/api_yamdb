@@ -1,9 +1,9 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from reviews.models import Category, Comment, Genre, Review, Title
 
 from api.mixins import AuthorSerializer
+from reviews.models import Category, Comment, Genre, Review, Title
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -20,6 +20,36 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug',)
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    """Сериализатор для произведений."""
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
+class TitleGetSerializer(TitleSerializer):
+    """Сериализатор для получения произведений."""
+
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(read_only=True, many=True)
+    rating = serializers.IntegerField(read_only=True)
+
+
+class TitleWriteSerializer(TitleSerializer):
+    """Сериализатор для изменения произведений."""
+
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(),
+        slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(),
+        slug_field='slug',
+        many=True
+    )
 
 
 class ReviewSerializer(AuthorSerializer):
@@ -52,19 +82,3 @@ class CommentSerializer(AuthorSerializer):
     class Meta(AuthorSerializer.Meta):
         model = Comment
         read_only_fields = ('review',)
-
-
-# class TitleSerializer(serializers.ModelSerializer):
-#     """Сериализатор для произведений."""
-
-#     class Meta:
-#         model = Title
-#         fields = '__all__'
-
-
-# class TitleGetSerializer(serializers.ModelSerializer):
-#     """Сериализатор для получения произведений."""
-
-
-# class TitleWriteSerializer(serializers.ModelSerializer):
-#     """Сериализатор для изменения произведений."""

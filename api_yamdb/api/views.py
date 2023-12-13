@@ -1,16 +1,21 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
-from reviews.models import Category, Genre, Title
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.filters import SearchFilter
 
+from api.filters import TitleFilter
+from api.mixins import GenreCategoryMixin
+from api.permissions import IsAdminModeratorAuthorReadOnly, IsAdminOrReadOnly
 from api.serializers import (
     CategorySerializer,
     CommentSerializer,
     GenreSerializer,
-    ReviewSerializer
+    ReviewSerializer,
+    TitleGetSerializer,
+    TitleWriteSerializer
 )
-from api.mixins import GenreCategoryMixin
-from api.permissions import IsAdminModeratorAuthorReadOnly
+from reviews.models import Category, Genre, Title
 
 
 class GenreViewSet(GenreCategoryMixin):
@@ -27,6 +32,22 @@ class CategoryViewSet(GenreCategoryMixin):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (SearchFilter,)
+
+    
+class TitleViewSet(viewsets.ModelViewSet):
+    """View-класс для произведения."""
+
+    permission_classes = (IsAdminOrReadOnly,)
+    queryset = Title.objects.annotate(rating=Avg('reviews__score')).all()
+    serializer_class = TitleGetSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = TitleFilter
+
+    def get_serializer_class(self):
+        """Определяет класс сериализатора в зависимости от типа запроса."""
+        if self.action in ('list', 'retrieve'):
+            return TitleGetSerializer
+        return TitleWriteSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
