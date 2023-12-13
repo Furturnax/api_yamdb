@@ -15,6 +15,7 @@ class NameSlugModel(models.Model):
     name = models.CharField(
         'Название',
         max_length=settings.LENGTH_256_CHAR,
+        db_index=True,
     )
     slug = models.SlugField(
         'Slug категории',

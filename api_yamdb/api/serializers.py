@@ -58,7 +58,7 @@ class TitleWriteSerializer(TitleSerializer):
 class ReviewSerializer(AuthorSerializer):
     """Сериализатор для отзывов."""
 
-    class Meta:
+    class Meta(AuthorSerializer.Meta):
         model = Review
         read_only_fields = ('title',)
 

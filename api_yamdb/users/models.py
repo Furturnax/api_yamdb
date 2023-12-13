@@ -3,11 +3,22 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from reviews.validators import username_validator
-from users.enums import Roles
+
+
+ROLES = {
+    'user': 'user',
+    'admin': 'admin',
+    'moderator': 'moderator',
+}
+USER = ROLES['user']
+ADMIN = ROLES['admin']
+MODERATOR = ROLES['moderator']
 
 
 class CustomUser(AbstractUser):
     """Модель переопределенного юзера."""
+
+    roles = [*ROLES.items()]
 
     username = models.CharField(
         'Юзернейм',
@@ -29,9 +40,9 @@ class CustomUser(AbstractUser):
     )
     role = models.CharField(
         'Роль',
-        default=Roles.USER.value,
-        max_length=Roles.max_length(),
-        choices=Roles.choices(),
+        default=USER,
+        max_length=len(max(ROLES.values(), key=len)),
+        choices=roles,
     )
 
     class Meta:
@@ -44,15 +55,12 @@ class CustomUser(AbstractUser):
 
     @property
     def is_user(self):
-        """Проверяет, имеет ли пользователь роль USER."""
-        return self.role == Roles.USER.value
+        return self.role == USER
 
     @property
     def is_moderator(self):
-        """Проверяет, имеет ли пользователь роль MODERATOR."""
-        return self.role == Roles.MODERATOR.value
+        return self.role == MODERATOR
 
     @property
     def is_admin(self):
-        """Проверяет, имеет ли пользователь роль ADMIN."""
-        return self.role == Roles.ADMIN.value or self.is_superuser
+        return self.role == ADMIN or self.is_superuser

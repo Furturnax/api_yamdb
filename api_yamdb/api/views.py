@@ -116,12 +116,12 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = AdminUserSerializer
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
-    lookup_field = "username"
+    lookup_field = 'username'
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     @action(
         detail=False,
-        methods=("get", "patch"),
+        methods=('get', 'patch'),
         permission_classes=(IsAuthenticated,),
         url_path=settings.CANT_USED_IN_USERNAME,
     )
@@ -131,7 +131,7 @@ class UserViewSet(viewsets.ModelViewSet):
             request.user, partial=True, data=request.data
         )
         serializer.is_valid(raise_exception=True)
-        if request.method == "PATCH":
+        if request.method == 'PATCH':
             serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
