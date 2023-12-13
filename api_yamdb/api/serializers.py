@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.mixins import AuthorSerializer
 from reviews.models import Category, Comment, Genre, Review, Title
+from users.models import CustomUser
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -82,3 +83,28 @@ class CommentSerializer(AuthorSerializer):
     class Meta(AuthorSerializer.Meta):
         model = Comment
         read_only_fields = ('review',)
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для администратора."""
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )
+
+
+class UserSerializer(AdminUserSerializer):
+    """
+    Сериализатор для пользователя.
+    Возможность редактирования всех полей, кроме роли.
+    """
+
+    class Meta(AdminUserSerializer.Meta):
+        read_only_fields = ('role',)
