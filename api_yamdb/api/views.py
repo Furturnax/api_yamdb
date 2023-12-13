@@ -1,12 +1,16 @@
 from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.db.models import Avg
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
 from api.mixins import GenreCategoryMixin
@@ -20,7 +24,9 @@ from api.serializers import (
     CategorySerializer,
     CommentSerializer,
     GenreSerializer,
+    GetTokenSerializer,
     ReviewSerializer,
+    SignUpSerializer,
     TitleGetSerializer,
     TitleWriteSerializer,
     UserSerializer
@@ -137,3 +143,46 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class APISignup(APIView):
+    """Создает нового пользователя."""
+
+    permission_classes = (AllowAny,)
+
+    @staticmethod
+    def send_code(email, confirmation_code):
+        """Отправляет email с кодом подтверждения на указанный адрес."""
+        send_mail(
+            subject='Регистрация на сайте YaMDb',
+            message=f'Код для подтверждения регистрации: {confirmation_code}',
+            from_email=settings.FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=True,
+        )
+
+    def post(self, request):
+        """Регистрирует созданного пользователя."""
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_data = serializer.validated_data
+        user, created = CustomUser.objects.get_or_create(**user_data)
+        confirmation_code = default_token_generator.make_token(user)
+        self.send_code(user.email, confirmation_code)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class APIGetToken(APIView):
+    """Получает JWT токен."""
+
+    def post(self, request):
+        """Создает JWT токен."""
+        serializer = GetTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username, confirmation_code = serializer.validated_data.values()
+        user = get_object_or_404(CustomUser, username=username)
+        if not default_token_generator.check_token(user, confirmation_code):
+            msg = {'confirmation_code': 'Код подтверждения неверный'}
+            return Response(msg, status=status.HTTP_400_BAD_REQUEST)
+        msg = {'token': str(AccessToken.for_user(user))}
+        return Response(msg, status=status.HTTP_200_OK)

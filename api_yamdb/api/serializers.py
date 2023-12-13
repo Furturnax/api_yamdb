@@ -1,8 +1,10 @@
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.mixins import AuthorSerializer
+from reviews.validators import username_validator
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import CustomUser
 
@@ -108,3 +110,42 @@ class UserSerializer(AdminUserSerializer):
 
     class Meta(AdminUserSerializer.Meta):
         read_only_fields = ('role',)
+
+
+class SignUpSerializer(serializers.Serializer):
+    """Сериализатор для регистрации пользователя."""
+
+    username = serializers.CharField(
+        max_length=settings.LENGTH_150_CHAR,
+        required=True,
+        validators=[username_validator],
+    )
+    email = serializers.EmailField(
+        max_length=settings.LENGTH_254_CHAR,
+        required=True,
+    )
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        user_data = CustomUser.objects.filter(username=username, email=email)
+        if not user_data.exists():
+            if CustomUser.objects.filter(username=username):
+                raise ValidationError(
+                    'Пользователь с таким username существует.'
+                )
+            if CustomUser.objects.filter(email=email):
+                raise ValidationError('Пользователь с таким email существует.')
+        return attrs
+
+
+class GetTokenSerializer(serializers.Serializer):
+    """Сериализатор для получения токена."""
+
+    username = serializers.CharField(
+        max_length=settings.LENGTH_150_CHAR,
+        required=True,
+    )
+    confirmation_code = serializers.CharField(
+        required=True,
+    )
