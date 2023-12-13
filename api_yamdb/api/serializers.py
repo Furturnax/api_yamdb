@@ -63,20 +63,17 @@ class ReviewSerializer(AuthorSerializer):
         read_only_fields = ('title',)
 
     def validate(self, data):
-        """Валидация на POST-запрос."""
-        if self.context.get('request').method != 'POST':
+        request = self.context.get('request')
+        if request.method != 'POST':
             return data
-        return self.validate_unique_review(data.get('title'))
-
-    def validate_unique_review(self, value):
-        """Дополнительная валидация для одного отзыва на автора."""
         title = get_object_or_404(
             Title, pk=self.context['view'].kwargs.get('title_id')
         )
-        request = self.context.get('request')
-        if title.objects.filter(author=request.user).exists():
-            raise ValidationError('Можно оставить только один отзыв.')
-        return value
+        if title.reviews.filter(author=request.user).exists():
+            raise ValidationError(
+                'Можно оставить только один отзыв на произведение!'
+            )
+        return data
 
 
 class CommentSerializer(AuthorSerializer):
