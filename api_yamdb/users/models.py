@@ -17,7 +17,7 @@ class CustomUser(AbstractUser):
     )
     email = models.EmailField(
         'Электронная почта',
-        max_length=settings.LENGTH_256_CHAR,
+        max_length=settings.LENGTH_254_CHAR,
         unique=True,
         help_text=(
             'Укажите уникальный юзернейм. Может содержать до '
