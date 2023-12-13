@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from reviews.models import Category, Genre
+from reviews.models import Category, Genre, Title
 # from users.models import CustomUser
 
 
@@ -48,17 +48,31 @@ class CategorySerializer(serializers.ModelSerializer):
 #         read_only_fields = ('review',)
 
 
-# class TitleSerializer(serializers.ModelSerializer):
-#     """Сериализатор для произведений."""
+class TitleSerializer(serializers.ModelSerializer):
+    """Сериализатор для произведений."""
 
-#     class Meta:
-#         model = Title
-#         fields = '__all__'
-
-
-# class TitleGetSerializer(serializers.ModelSerializer):
-#     """Сериализатор для получения произведений."""
+    class Meta:
+        model = Title
+        fields = '__all__'
 
 
-# class TitleWriteSerializer(serializers.ModelSerializer):
-#     """Сериализатор для изменения произведений."""
+class TitleGetSerializer(serializers.ModelSerializer):
+    """Сериализатор для получения произведений."""
+
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(read_only=True, many=True)
+    rating = serializers.IntegerField(read_only=True)
+
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    """Сериализатор для изменения произведений."""
+
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(),
+        slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(),
+        slug_field='slug',
+        many=True
+    )
