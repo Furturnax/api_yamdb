@@ -113,35 +113,26 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = CustomUser.objects.all()
     permission_classes = (IsAdmin,)
-    serializer_class = (AdminUserSerializer,)
+    serializer_class = AdminUserSerializer
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
+    lookup_field = "username"
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     @action(
         detail=False,
-        methods=('get',),
+        methods=("get", "patch"),
         permission_classes=(IsAuthenticated,),
         url_path=settings.CANT_USED_IN_USERNAME,
     )
-    def user_read(self, request):
-        """Чтение данных пользователя."""
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(
-        detail=False,
-        methods=('patch',),
-        permission_classes=(IsAuthenticated,),
-        url_path=settings.CANT_USED_IN_USERNAME,
-    )
-    def user_edit(self, request):
-        """Редактирование данных пользователя."""
+    def user_read_edit(self, request):
+        """Чтение и редактирование данных пользователя."""
         serializer = UserSerializer(
             request.user, partial=True, data=request.data
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if request.method == "PATCH":
+            serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

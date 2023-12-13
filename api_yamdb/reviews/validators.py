@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.timezone import now
@@ -6,6 +8,16 @@ from rest_framework.exceptions import ValidationError
 
 def username_validator(value):
     """Валидатор юзернейна."""
+    regex = r"^[\w.@+-]+\Z"
+    if re.search(regex, value) is None:
+        invalid_characters = set(re.findall(r"[^\w.@+-]", value))
+        raise ValidationError(
+            (
+                f"Не допустимые символы {invalid_characters} в username. "
+                f"username может содержать только буквы, цифры и "
+                f"знаки @/./+/-/_."
+            ),
+        )
     if value.lower() == settings.CANT_USED_IN_USERNAME:
         raise ValidationError(
             f'Использовать {settings.CANT_USED_IN_USERNAME} как '
