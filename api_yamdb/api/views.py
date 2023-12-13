@@ -31,7 +31,7 @@ from api.serializers import (
     TitleWriteSerializer,
     UserSerializer
 )
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Review, Title
 from users.models import CustomUser
 
 
@@ -97,7 +97,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         """Получает отзыв."""
-        return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        return get_object_or_404(Review, pk=self.kwargs.get('review_id'))
 
     def get_queryset(self):
         """Получает запрос для комментариев автора данного отзыва."""
