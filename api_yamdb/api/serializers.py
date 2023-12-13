@@ -1,6 +1,9 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from reviews.models import Category, Genre, Title
-# from users.models import CustomUser
+from rest_framework.exceptions import ValidationError
+
+from api.mixins import AuthorSerializer
+from reviews.models import Category, Comment, Genre, Review, Title
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -18,35 +21,6 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ('name', 'slug',)
 
-# class AuthorSerializer(serializers.ModelSerializer):
-#     """Базовый сериализатор поля author."""
-
-#     author = serializers.SlugRelatedField(
-#         read_only=True,
-#         slug_field="username",
-#         default=serializers.CurrentUserDefault(),
-#     )
-
-#     class Meta:
-#         fields = '__all__'
-
-
-# class ReviewSerializer(AuthorSerializer):
-#     """Сериализатор для отзывов."""
-
-# #TODO
-#     class Meta(AuthorSerializer.Meta):
-#         model = Review
-#         read_only_fields = ('title',)
-
-
-# class CommentSerializer(AuthorSerializer):
-#     """Сериализатор для произведений."""
-
-#     class Meta(AuthorSerializer.Meta):
-#         model = Comment
-#         read_only_fields = ('review',)
-
 
 class TitleSerializer(serializers.ModelSerializer):
     """Сериализатор для произведений."""
@@ -56,7 +30,7 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TitleGetSerializer(serializers.ModelSerializer):
+class TitleGetSerializer(TitleSerializer):
     """Сериализатор для получения произведений."""
 
     category = CategorySerializer(read_only=True)
@@ -64,7 +38,7 @@ class TitleGetSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(read_only=True)
 
 
-class TitleWriteSerializer(serializers.ModelSerializer):
+class TitleWriteSerializer(TitleSerializer):
     """Сериализатор для изменения произведений."""
 
     category = serializers.SlugRelatedField(
@@ -76,3 +50,35 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         slug_field='slug',
         many=True
     )
+
+
+class ReviewSerializer(AuthorSerializer):
+    """Сериализатор для отзывов."""
+
+    class Meta:
+        model = Review
+        read_only_fields = ('title',)
+
+    def validate(self, data):
+        """Валидация на POST-запрос."""
+        if self.context.get('request').method != 'POST':
+            return data
+        return self.validate_unique_review(data.get('title'))
+
+    def validate_unique_review(self, value):
+        """Дополнительная валидация для одного отзыва на автора."""
+        title = get_object_or_404(
+            Title, pk=self.context['view'].kwargs.get('title_id')
+        )
+        request = self.context.get('request')
+        if title.objects.filter(author=request.user).exists():
+            raise ValidationError('Можно оставить только один отзыв.')
+        return value
+
+
+class CommentSerializer(AuthorSerializer):
+    """Сериализатор для произведений."""
+
+    class Meta(AuthorSerializer.Meta):
+        model = Comment
+        read_only_fields = ('review',)
