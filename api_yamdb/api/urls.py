@@ -9,17 +9,17 @@ from api.views import (
     GenreViewSet,
     ReviewViewSet,
     TitleViewSet,
-    # UserViewSet,
+    UserViewSet,
 )
 
 
 router_v1 = DefaultRouter()
 
-# router_v1.register(
-#     'users',
-#     UserViewSet,
-#     basename='users'
-# )
+router_v1.register(
+    'users',
+    UserViewSet,
+    basename='users'
+)
 router_v1.register(
     'titles',
     TitleViewSet,
