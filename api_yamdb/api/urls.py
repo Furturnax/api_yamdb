@@ -12,7 +12,6 @@ from api.views import (
     UserViewSet,
 )
 
-
 router_v1 = DefaultRouter()
 
 router_v1.register(

@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from api.mixins import AuthorSerializer
+from api.mixins import AdminUserSerializer, AuthorSerializer, TitleSerializer
 from reviews.validators import username_validator
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import CustomUser
@@ -23,14 +23,6 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug',)
-
-
-class TitleSerializer(serializers.ModelSerializer):
-    """Сериализатор для произведений."""
-
-    class Meta:
-        model = Title
-        fields = '__all__'
 
 
 class TitleGetSerializer(TitleSerializer):
@@ -84,21 +76,6 @@ class CommentSerializer(AuthorSerializer):
         read_only_fields = ('review',)
 
 
-class AdminUserSerializer(serializers.ModelSerializer):
-    """Сериализатор для администратора."""
-
-    class Meta:
-        model = CustomUser
-        fields = (
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'bio',
-            'role',
-        )
-
-
 class UserSerializer(AdminUserSerializer):
     """
     Сериализатор для пользователя.
@@ -122,18 +99,20 @@ class SignUpSerializer(serializers.Serializer):
         required=True,
     )
 
-    def validate(self, attrs):
-        username = attrs.get('username')
-        email = attrs.get('email')
-        user_data = CustomUser.objects.filter(username=username, email=email)
+    def validate(self, value):
+        """Возвращает валидные данные."""
+        user_data = CustomUser.objects.filter(
+            username=value.get('username'),
+            email=value.get('email')
+        )
         if not user_data.exists():
-            if CustomUser.objects.filter(username=username):
+            if CustomUser.objects.filter(username=value.get('username')):
                 raise ValidationError(
                     'Пользователь с таким username существует.'
                 )
-            if CustomUser.objects.filter(email=email):
+            if CustomUser.objects.filter(email=value.get('email')):
                 raise ValidationError('Пользователь с таким email существует.')
-        return attrs
+        return value
 
 
 class GetTokenSerializer(serializers.Serializer):

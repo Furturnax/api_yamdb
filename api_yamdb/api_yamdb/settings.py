@@ -127,6 +127,8 @@ SCORE_MAX: int = 10
 
 CANT_USED_IN_USERNAME: str = 'me'
 
+USER_PROFILE_LINK: str = 'me'
+
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
