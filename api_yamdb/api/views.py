@@ -123,17 +123,27 @@ class UserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=('get', 'patch'),
         permission_classes=(IsAuthenticated,),
-        url_path=settings.CANT_USED_IN_USERNAME,
+        url_path=settings.USER_PROFILE_LINK,
     )
-    def user_read_edit(self, request):
-        """Чтение и редактирование данных пользователя."""
-        serializer = UserSerializer(
-            request.user, partial=True, data=request.data
-        )
-        serializer.is_valid(raise_exception=True)
-        if request.method == 'PATCH':
+    def user_data_operations(self, request):
+        """
+        GET: Получение данных пользователя.
+        PATCH: Частичное обновление данных пользователя.
+        """
+        if request.method == 'GET':
+            serializer = UserSerializer(request.user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'PATCH':
+            serializer = UserSerializer(
+                request.user, partial=True, data=request.data
+            )
+            serializer.is_valid(raise_exception=True)
             serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {'message': 'Метод не поддерживается'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
 
 
 class APISignup(APIView):
@@ -141,8 +151,22 @@ class APISignup(APIView):
 
     permission_classes = (AllowAny,)
 
-    @staticmethod
-    def send_code(email, confirmation_code):
+    def validate_user_data(self, data):
+        """Возвращает валидные данные."""
+        serializer = SignUpSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.validated_data
+
+    def create_user(self, validated_data):
+        """Создает пользователя на основе валидных данных."""
+        user, created = CustomUser.objects.get_or_create(**validated_data)
+        return user
+
+    def generate_confirmation_code(self, user):
+        """Генерирует код подтверждения для пользователя."""
+        return default_token_generator.make_token(user)
+
+    def send_confirmation_email(self, email, confirmation_code):
         """Отправляет email с кодом подтверждения на указанный адрес."""
         send_mail(
             subject='Регистрация на сайте YaMDb',
@@ -153,27 +177,45 @@ class APISignup(APIView):
         )
 
     def post(self, request):
-        """Регистрирует созданного пользователя."""
-        serializer = SignUpSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user_data = serializer.validated_data
-        user, created = CustomUser.objects.get_or_create(**user_data)
-        confirmation_code = default_token_generator.make_token(user)
-        self.send_code(user.email, confirmation_code)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        """Обрабатывает POST-запрос для регистрации пользователя."""
+        user_data = self.validate_user_data(request.data)
+        user = self.create_user(user_data)
+        confirmation_code = self.generate_confirmation_code(user)
+        self.send_confirmation_email(user.email, confirmation_code)
+        return Response(user_data, status=status.HTTP_200_OK)
 
 
 class APIGetToken(APIView):
-    """Получает JWT токен."""
+    """Работа с JWT токеном."""
+
+    permission_classes = (AllowAny,)
+
+    def validate_request_data(self, request_data):
+        """Возвращает вылидные данные из запроса."""
+        serializer = GetTokenSerializer(data=request_data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.validated_data.values()
+
+    def get_user(self, username):
+        """Получает пользователя по имени."""
+        return get_object_or_404(CustomUser, username=username)
+
+    def check_confirmation_code(self, user, confirmation_code):
+        """Проверяет код подтверждения."""
+        return default_token_generator.check_token(user, confirmation_code)
+
+    def generate_token(self, user):
+        """Генерирует JWT токен для пользователя."""
+        return AccessToken.for_user(user)
 
     def post(self, request):
-        """Создает JWT токен."""
-        serializer = GetTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        username, confirmation_code = serializer.validated_data.values()
-        user = get_object_or_404(CustomUser, username=username)
-        if not default_token_generator.check_token(user, confirmation_code):
-            msg = {'confirmation_code': 'Код подтверждения неверный'}
-            return Response(msg, status=status.HTTP_400_BAD_REQUEST)
-        msg = {'token': str(AccessToken.for_user(user))}
-        return Response(msg, status=status.HTTP_200_OK)
+        """Возвращаем обрабатанный POST-запрос для генерации токена."""
+        username, confirmation_code = self.validate_request_data(request.data)
+        user = self.get_user(username)
+        if not self.check_confirmation_code(user, confirmation_code):
+            return Response(
+                {'confirmation_code': 'Код подтверждения неверный'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        token = self.generate_token(user)
+        return Response({'token': str(token)}, status=status.HTTP_200_OK)

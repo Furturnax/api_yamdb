@@ -2,6 +2,8 @@ from rest_framework import mixins, viewsets
 from rest_framework import serializers
 
 from api.permissions import IsAdminOrReadOnly
+from reviews.models import Title
+from users.models import CustomUser
 
 
 class GenreCategoryMixin(
@@ -17,6 +19,14 @@ class GenreCategoryMixin(
     lookup_field = 'slug'
 
 
+class TitleSerializer(serializers.ModelSerializer):
+    """Сериализатор для произведений."""
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
 class AuthorSerializer(serializers.ModelSerializer):
     """Миксин сериализатор поля автора."""
 
@@ -28,3 +38,18 @@ class AuthorSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = '__all__'
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для администратора."""
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )

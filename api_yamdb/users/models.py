@@ -18,8 +18,6 @@ MODERATOR = ROLES['moderator']
 class CustomUser(AbstractUser):
     """Модель переопределенного юзера."""
 
-    roles = [*ROLES.items()]
-
     username = models.CharField(
         'Юзернейм',
         max_length=settings.LENGTH_150_CHAR,
@@ -42,7 +40,7 @@ class CustomUser(AbstractUser):
         'Роль',
         default=USER,
         max_length=len(max(ROLES.values(), key=len)),
-        choices=roles,
+        choices=[*ROLES.items()],
     )
 
     class Meta:
