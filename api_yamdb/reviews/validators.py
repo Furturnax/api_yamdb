@@ -1,9 +1,14 @@
 import re
 
-from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
+
+from api_yamdb.consts import (
+    CANT_USED_IN_USERNAME,
+    SCORE_MAX,
+    SCORE_MIN
+)
 
 
 def username_validator(value):
@@ -16,9 +21,9 @@ def username_validator(value):
                 'знаки @/./+/-/_.'
             ),
         )
-    if value.lower() == settings.CANT_USED_IN_USERNAME:
+    if value.lower() == CANT_USED_IN_USERNAME:
         raise ValidationError(
-            f'Использовать {settings.CANT_USED_IN_USERNAME} как '
+            f'Использовать {CANT_USED_IN_USERNAME} как '
             'username запрещено.'
         )
 
@@ -33,14 +38,14 @@ def year_validator(value):
 def score_min_validator(value):
     """Валидатор минимальной оценки."""
     return MinValueValidator(
-        settings.SCORE_MIN,
-        message=f'Нельзя поставить оценку ниже {settings.SCORE_MIN}.',
+        SCORE_MIN,
+        message=f'Нельзя поставить оценку ниже {SCORE_MIN}.',
     )(value)
 
 
 def score_max_validator(value):
     """Валидатор максимальной оценки."""
     return MaxValueValidator(
-        settings.SCORE_MAX,
-        message=f'Нельзя поставить оценку выше {settings.SCORE_MAX}.',
+        SCORE_MAX,
+        message=f'Нельзя поставить оценку выше {SCORE_MAX}.',
     )(value)

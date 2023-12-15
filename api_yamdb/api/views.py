@@ -31,6 +31,7 @@ from api.serializers import (
     TitleWriteSerializer,
     UserSerializer
 )
+from api_yamdb.consts import CANT_USED_IN_USERNAME
 from reviews.models import Category, Genre, Review, Title
 from users.models import CustomUser
 
@@ -123,7 +124,7 @@ class UserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=('get', 'patch'),
         permission_classes=(IsAuthenticated,),
-        url_path=settings.USER_PROFILE_LINK,
+        url_path=CANT_USED_IN_USERNAME,
     )
     def user_data_operations(self, request):
         """
