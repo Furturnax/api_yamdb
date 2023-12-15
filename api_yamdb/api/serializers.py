@@ -1,9 +1,9 @@
-from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from api.mixins import AdminUserSerializer, AuthorSerializer, TitleSerializer
+from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
 from reviews.validators import username_validator
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import CustomUser
@@ -90,12 +90,12 @@ class SignUpSerializer(serializers.Serializer):
     """Сериализатор для регистрации пользователя."""
 
     username = serializers.CharField(
-        max_length=settings.LENGTH_150_CHAR,
+        max_length=LENGTH_150_CHAR,
         required=True,
         validators=[username_validator],
     )
     email = serializers.EmailField(
-        max_length=settings.LENGTH_254_CHAR,
+        max_length=LENGTH_254_CHAR,
         required=True,
     )
 
@@ -119,7 +119,7 @@ class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
     username = serializers.CharField(
-        max_length=settings.LENGTH_150_CHAR,
+        max_length=LENGTH_150_CHAR,
         required=True,
     )
     confirmation_code = serializers.CharField(

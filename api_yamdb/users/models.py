@@ -1,7 +1,10 @@
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from api_yamdb.consts import (
+    LENGTH_150_CHAR,
+    LENGTH_254_CHAR
+)
 from reviews.validators import username_validator
 
 
@@ -20,17 +23,17 @@ class CustomUser(AbstractUser):
 
     username = models.CharField(
         'Юзернейм',
-        max_length=settings.LENGTH_150_CHAR,
+        max_length=LENGTH_150_CHAR,
         unique=True,
         validators=[username_validator],
     )
     email = models.EmailField(
         'Электронная почта',
-        max_length=settings.LENGTH_254_CHAR,
+        max_length=LENGTH_254_CHAR,
         unique=True,
         help_text=(
             'Укажите уникальный юзернейм. Может содержать до '
-            f'{settings.LENGTH_150_CHAR} символов.')
+            f'{LENGTH_150_CHAR} символов.')
     )
     bio = models.TextField(
         'О себе',
