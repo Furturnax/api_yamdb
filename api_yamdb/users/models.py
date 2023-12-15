@@ -1,21 +1,15 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
-from api_yamdb.consts import (
-    LENGTH_150_CHAR,
-    LENGTH_254_CHAR
-)
+from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
 from reviews.validators import username_validator
 
 
-ROLES = {
-    'user': 'user',
-    'admin': 'admin',
-    'moderator': 'moderator',
-}
-USER = ROLES['user']
-ADMIN = ROLES['admin']
-MODERATOR = ROLES['moderator']
+class UserRole(models.TextChoices):
+    USER = 'user', _('Пользователь')
+    ADMIN = 'admin', _('Администратор')
+    MODERATOR = 'moderator', _('Модератор')
 
 
 class User(AbstractUser):
@@ -25,7 +19,7 @@ class User(AbstractUser):
         'Юзернейм',
         max_length=LENGTH_150_CHAR,
         unique=True,
-        validators=[username_validator],
+        validators=(username_validator,),
     )
     email = models.EmailField(
         'Электронная почта',
@@ -33,7 +27,8 @@ class User(AbstractUser):
         unique=True,
         help_text=(
             'Укажите уникальный юзернейм. Может содержать до '
-            f'{LENGTH_150_CHAR} символов.')
+            f'{LENGTH_150_CHAR} символов.'
+        ),
     )
     bio = models.TextField(
         'О себе',
@@ -41,9 +36,9 @@ class User(AbstractUser):
     )
     role = models.CharField(
         'Роль',
-        default=USER,
-        max_length=len(max(ROLES.values(), key=len)),
-        choices=[*ROLES.items()],
+        max_length=max(len(role) for role in UserRole.values),
+        choices=UserRole.choices,
+        default=UserRole.USER,
     )
 
     class Meta:
@@ -52,16 +47,12 @@ class User(AbstractUser):
         ordering = ('username',)
 
     def __str__(self):
-        return (f'{self.username} - {self.email} - {self.role}')
-
-    @property
-    def is_user(self):
-        return self.role == USER
+        return f'{self.username} - {self.email} - {self.role}'
 
     @property
     def is_moderator(self):
-        return self.role == MODERATOR
+        return self.role == UserRole.MODERATOR
 
     @property
     def is_admin(self):
-        return self.role == ADMIN or self.is_superuser
+        return self.role == UserRole.ADMIN or self.is_superuser
