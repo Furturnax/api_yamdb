@@ -9,7 +9,7 @@ from api_yamdb.consts import (
     SCORE_MIN
 )
 from reviews.validators import year_validator
-from users.models import CustomUser
+from users.models import User
 
 
 class NameSlugModel(models.Model):
@@ -101,7 +101,7 @@ class TextAuthorPubdateModel(models.Model):
         'Текст',
     )
     author = models.ForeignKey(
-        CustomUser,
+        User,
         verbose_name='Автор',
         on_delete=models.CASCADE,
     )

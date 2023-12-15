@@ -18,7 +18,7 @@ ADMIN = ROLES['admin']
 MODERATOR = ROLES['moderator']
 
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     """Модель переопределенного юзера."""
 
     username = models.CharField(

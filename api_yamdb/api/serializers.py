@@ -4,7 +4,7 @@ from rest_framework.exceptions import ValidationError
 from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
 from reviews.validators import username_validator
 from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import CustomUser
+from users.models import User
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -116,7 +116,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     """Сериализатор для администратора."""
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = (
             'username',
             'email',
@@ -152,17 +152,17 @@ class SignUpSerializer(serializers.Serializer):
 
     def validate(self, value):
         """Возвращает валидные данные."""
-        user_data = CustomUser.objects.filter(
+        user_data = User.objects.filter(
             username=value.get('username'),
             email=value.get('email')
         )
         if user_data.exists():
             return value
-        if CustomUser.objects.filter(username=value.get('username')):
+        if User.objects.filter(username=value.get('username')):
             raise ValidationError(
                 'Пользователь с таким username существует.'
             )
-        if CustomUser.objects.filter(email=value.get('email')):
+        if User.objects.filter(email=value.get('email')):
             raise ValidationError(
                 'Пользователь с таким email существует.'
             )

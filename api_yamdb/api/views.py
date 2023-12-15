@@ -32,7 +32,7 @@ from api.serializers import (
 )
 from api_yamdb.consts import CANT_USED_IN_USERNAME
 from reviews.models import Category, Genre, Review, Title
-from users.models import CustomUser
+from users.models import User
 
 
 class GenreCategoryMixin(
@@ -133,7 +133,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     """Управление данными пользователя."""
 
-    queryset = CustomUser.objects.all()
+    queryset = User.objects.all()
     permission_classes = (IsAdmin,)
     serializer_class = AdminUserSerializer
     filter_backends = (SearchFilter,)
@@ -180,7 +180,7 @@ class APISignup(APIView):
 
     def create_user(self, validated_data):
         """Создает пользователя на основе валидных данных."""
-        user, created = CustomUser.objects.get_or_create(**validated_data)
+        user, created = User.objects.get_or_create(**validated_data)
         return user
 
     def generate_confirmation_code(self, user):
@@ -217,7 +217,7 @@ class APIGetToken(APIView):
 
     def get_user(self, username):
         """Получает пользователя по имени."""
-        return get_object_or_404(CustomUser, username=username)
+        return get_object_or_404(User, username=username)
 
     def check_confirmation_code(self, user, confirmation_code):
         """Проверяет код подтверждения."""

@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from reviews.models import CustomUser
+from reviews.models import User
 
 
-@admin.register(CustomUser)
+@admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Интерфейс управления пользователями."""
 
