@@ -1,9 +1,14 @@
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.tokens import AccessToken
 
 from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
-from reviews.validators import username_validator
 from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.validators import username_validator
 from users.models import User
 
 
@@ -64,7 +69,7 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     def validate_genre(self, value):
         """Проверка валидности списка жанров."""
         if not value:
-            raise ValidationError('Жанр обязателен')
+            raise ValidationError('Жанр обязателен.')
         return value
 
 
@@ -77,15 +82,13 @@ class AuthorSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault(),
     )
 
-    class Meta:
-        fields = '__all__'
-
 
 class ReviewSerializer(AuthorSerializer):
     """Сериализатор для отзывов."""
 
-    class Meta(AuthorSerializer.Meta):
+    class Meta():
         model = Review
+        fields = ('id', 'title', 'score', 'author', 'text', 'pub_date')
         read_only_fields = ('title',)
 
     def validate(self, data):
@@ -99,7 +102,7 @@ class ReviewSerializer(AuthorSerializer):
             author=request.user
         ).exists():
             raise ValidationError(
-                'Можно оставить только один отзыв на произведение!'
+                'Можно оставить только один отзыв на произведение.'
             )
         return data
 
@@ -107,8 +110,9 @@ class ReviewSerializer(AuthorSerializer):
 class CommentSerializer(AuthorSerializer):
     """Сериализатор для произведений."""
 
-    class Meta(AuthorSerializer.Meta):
+    class Meta:
         model = Comment
+        fields = ('id', 'review', 'author', 'text', 'pub_date')
         read_only_fields = ('review',)
 
 
@@ -143,7 +147,7 @@ class SignUpSerializer(serializers.Serializer):
     username = serializers.CharField(
         max_length=LENGTH_150_CHAR,
         required=True,
-        validators=[username_validator],
+        validators=(username_validator,),
     )
     email = serializers.EmailField(
         max_length=LENGTH_254_CHAR,
@@ -168,6 +172,19 @@ class SignUpSerializer(serializers.Serializer):
             )
         return value
 
+    def create(self, validated_data):
+        """Создает пользователя и отправляет письмо с confirmation code."""
+        user, created = User.objects.get_or_create(**validated_data)
+        confirmation_code = default_token_generator.make_token(user)
+        send_mail(
+            subject='Регистрация на сайте YaMDb',
+            message=f'Код для подтверждения регистрации: {confirmation_code}',
+            from_email=settings.FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+        return user
+
 
 class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
@@ -179,3 +196,17 @@ class GetTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(
         required=True,
     )
+
+    def create(self, validated_data):
+        """Создает JWT токен для пользователя из предоставленных данных."""
+        username, confirmation_code = validated_data.values()
+        user = get_object_or_404(User, username=username)
+        confirmation_check = default_token_generator.check_token(
+            user, confirmation_code
+        )
+        if not confirmation_check:
+            raise ValidationError(
+                {'confirmation_code': 'Код подтверждения неверный'}
+            )
+        token = AccessToken.for_user(user)
+        return {'token': str(token)}
