@@ -10,10 +10,6 @@ class TitleFilter(django_filters.FilterSet):
         field_name='name',
         lookup_expr='icontains',
     )
-    year = django_filters.NumberFilter(
-        field_name='year',
-        lookup_expr='exact',
-    )
     genre = django_filters.CharFilter(
         field_name='genre__slug',
         lookup_expr='icontains',
