@@ -1,4 +1,3 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -55,6 +54,19 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         model = Title
         fields = ('id', 'name', 'year', 'description', 'genre', 'category')
 
+    def to_representation(self, instance):
+        """Переопределение to_representation для изменения вывода данных."""
+        representation = super().to_representation(instance)
+        title_get_serializer = TitleGetSerializer(instance)
+        representation.update(title_get_serializer.data)
+        return representation
+
+    def validate_genre(self, value):
+        """Проверка валидности списка жанров."""
+        if not value:
+            raise ValidationError('Жанр обязателен')
+        return value
+
 
 class AuthorSerializer(serializers.ModelSerializer):
     """Миксин сериализатор поля автора."""
@@ -77,13 +89,15 @@ class ReviewSerializer(AuthorSerializer):
         read_only_fields = ('title',)
 
     def validate(self, data):
+        """Проверяет, что пользователь может оставить только один отзыв."""
         request = self.context.get('request')
         if request.method != 'POST':
             return data
-        title = get_object_or_404(
-            Title, pk=self.context['view'].kwargs.get('title_id')
-        )
-        if title.reviews.filter(author=request.user).exists():
+        title_id = self.context['view'].kwargs.get('title_id')
+        if Review.objects.filter(
+            title_id=title_id,
+            author=request.user
+        ).exists():
             raise ValidationError(
                 'Можно оставить только один отзыв на произведение!'
             )
@@ -142,13 +156,16 @@ class SignUpSerializer(serializers.Serializer):
             username=value.get('username'),
             email=value.get('email')
         )
-        if not user_data.exists():
-            if CustomUser.objects.filter(username=value.get('username')):
-                raise ValidationError(
-                    'Пользователь с таким username существует.'
-                )
-            if CustomUser.objects.filter(email=value.get('email')):
-                raise ValidationError('Пользователь с таким email существует.')
+        if user_data.exists():
+            return value
+        if CustomUser.objects.filter(username=value.get('username')):
+            raise ValidationError(
+                'Пользователь с таким username существует.'
+            )
+        if CustomUser.objects.filter(email=value.get('email')):
+            raise ValidationError(
+                'Пользователь с таким email существует.'
+            )
         return value
 
 
