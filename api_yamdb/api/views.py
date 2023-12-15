@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,7 +13,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
-from api.mixins import GenreCategoryMixin
 from api.permissions import (
     IsAdmin,
     IsAdminModeratorAuthorReadOnly,
@@ -33,6 +32,19 @@ from api.serializers import (
 )
 from reviews.models import Category, Genre, Review, Title
 from users.models import CustomUser
+
+
+class GenreCategoryMixin(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """ViewSet для жанров и категорий."""
+
+    permission_classes = (IsAdminOrReadOnly,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class GenreViewSet(GenreCategoryMixin):
