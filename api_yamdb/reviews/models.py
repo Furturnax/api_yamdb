@@ -1,7 +1,11 @@
-from django.conf import settings
 from django.db import models
 from users.models import CustomUser
 
+from api_yamdb.consts import (
+    LENGTH_50_CHAR,
+    LENGTH_256_CHAR,
+    MAX_LENGTH
+)
 from reviews.validators import (
     score_max_validator,
     score_min_validator,
@@ -14,12 +18,12 @@ class NameSlugModel(models.Model):
 
     name = models.CharField(
         'Название',
-        max_length=settings.LENGTH_256_CHAR,
+        max_length=LENGTH_256_CHAR,
         db_index=True,
     )
     slug = models.SlugField(
         'Slug категории',
-        max_length=settings.LENGTH_50_CHAR,
+        max_length=LENGTH_50_CHAR,
         unique=True,
     )
 
@@ -28,7 +32,7 @@ class NameSlugModel(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        return (f'{self.name[:settings.MAX_LENGTH]} - {self.slug}')
+        return (f'{self.name[:MAX_LENGTH]} - {self.slug}')
 
 
 class Category(NameSlugModel):
@@ -54,7 +58,7 @@ class Title(models.Model):
 
     name = models.CharField(
         'Название',
-        max_length=settings.LENGTH_256_CHAR,
+        max_length=LENGTH_256_CHAR,
     )
     year = models.PositiveSmallIntegerField(
         'Год выпуска',
@@ -87,8 +91,8 @@ class Title(models.Model):
 
     def __str__(self):
         return (
-            f'{self.name[:settings.MAX_LENGTH]} - '
-            f'{self.description[:settings.MAX_LENGTH]} - '
+            f'{self.name[:MAX_LENGTH]} - '
+            f'{self.description[:MAX_LENGTH]} - '
             f'{self.year} - '
             f'{self.genre.name} - '
             f'{self.category.name}'
@@ -161,8 +165,8 @@ class Review(TextAuthorPubdateModel):
 
     def __str__(self):
         return (
-            f'{self.title[:settings.MAX_LENGTH]} - '
-            f'{self.text[:settings.MAX_LENGTH]} - '
+            f'{self.title[:MAX_LENGTH]} - '
+            f'{self.text[:MAX_LENGTH]} - '
             f'{self.author.username} - '
             f'{self.score} - '
             f'{self.pub_date}'
@@ -185,8 +189,8 @@ class Comment(TextAuthorPubdateModel):
 
     def __str__(self):
         return (
-            f'{self.review.title[:settings.MAX_LENGTH]} - '
-            f'{self.text[:settings.MAX_LENGTH]} - '
+            f'{self.review.title[:MAX_LENGTH]} - '
+            f'{self.text[:MAX_LENGTH]} - '
             f'{self.author.username} - '
             f'{self.pub_date}'
         )
