@@ -1,14 +1,9 @@
 import re
 
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
 
-from api_yamdb.consts import (
-    CANT_USED_IN_USERNAME,
-    SCORE_MAX,
-    SCORE_MIN
-)
+from api_yamdb.consts import CANT_USED_IN_USERNAME
 
 
 def username_validator(value):
@@ -33,19 +28,3 @@ def year_validator(value):
     current_year = now().year
     if value > current_year:
         raise ValidationError('Год не может быть позже текущего года.')
-
-
-def score_min_validator(value):
-    """Валидатор минимальной оценки."""
-    return MinValueValidator(
-        SCORE_MIN,
-        message=f'Нельзя поставить оценку ниже {SCORE_MIN}.',
-    )(value)
-
-
-def score_max_validator(value):
-    """Валидатор максимальной оценки."""
-    return MaxValueValidator(
-        SCORE_MAX,
-        message=f'Нельзя поставить оценку выше {SCORE_MAX}.',
-    )(value)

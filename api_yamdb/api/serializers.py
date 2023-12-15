@@ -2,8 +2,6 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-
-from api.mixins import AdminUserSerializer, AuthorSerializer, TitleSerializer
 from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
 from reviews.validators import username_validator
 from reviews.models import Category, Comment, Genre, Review, Title

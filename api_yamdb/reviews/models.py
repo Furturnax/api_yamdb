@@ -1,16 +1,15 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from users.models import CustomUser
 
 from api_yamdb.consts import (
     LENGTH_50_CHAR,
     LENGTH_256_CHAR,
-    MAX_LENGTH
+    MAX_LENGTH,
+    SCORE_MAX,
+    SCORE_MIN
 )
-from reviews.validators import (
-    score_max_validator,
-    score_min_validator,
-    year_validator
-)
+from reviews.validators import year_validator
+from users.models import CustomUser
 
 
 class NameSlugModel(models.Model):
@@ -22,7 +21,7 @@ class NameSlugModel(models.Model):
         db_index=True,
     )
     slug = models.SlugField(
-        'Slug категории',
+        'Слаг названия',
         max_length=LENGTH_50_CHAR,
         unique=True,
     )
@@ -32,7 +31,7 @@ class NameSlugModel(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        return (f'{self.name[:MAX_LENGTH]} - {self.slug}')
+        return f'{self.name[:MAX_LENGTH]} - {self.slug}'
 
 
 class Category(NameSlugModel):
@@ -41,7 +40,6 @@ class Category(NameSlugModel):
     class Meta(NameSlugModel.Meta):
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
-        default_related_name = 'categories'
 
 
 class Genre(NameSlugModel):
@@ -50,7 +48,6 @@ class Genre(NameSlugModel):
     class Meta(NameSlugModel.Meta):
         verbose_name = 'жанр'
         verbose_name_plural = 'Жанры'
-        default_related_name = 'genres'
 
 
 class Title(models.Model):
@@ -60,10 +57,11 @@ class Title(models.Model):
         'Название',
         max_length=LENGTH_256_CHAR,
     )
-    year = models.PositiveSmallIntegerField(
+    year = models.SmallIntegerField(
         'Год выпуска',
-        validators=[year_validator],
-        help_text='Введите год, который не превышает текущий.'
+        validators=(year_validator,),
+        help_text='Введите год, который не превышает текущий.',
+        db_index=True
     )
     description = models.TextField(
         'Описание',
@@ -72,15 +70,12 @@ class Title(models.Model):
     genre = models.ManyToManyField(
         Genre,
         verbose_name='Slug жанра',
-        through='GenreTitle',
 
     )
     category = models.ForeignKey(
         Category,
         verbose_name='Slug категории',
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
+        on_delete=models.CASCADE,
     )
 
     class Meta:
@@ -97,24 +92,6 @@ class Title(models.Model):
             f'{self.genre.name} - '
             f'{self.category.name}'
         )
-
-
-class GenreTitle(models.Model):
-    """Модель промежуточной таблицы GenreTitle."""
-
-    genre = models.ForeignKey(
-        Genre,
-        verbose_name='Slug жанра',
-        on_delete=models.CASCADE,
-    )
-    title = models.ForeignKey(
-        Title,
-        verbose_name='Произведение',
-        on_delete=models.CASCADE,
-    )
-
-    def __str__(self):
-        return (f'{self.title.name} - {self.genre.name}')
 
 
 class TextAuthorPubdateModel(models.Model):
@@ -148,8 +125,17 @@ class Review(TextAuthorPubdateModel):
     )
     score = models.PositiveSmallIntegerField(
         'Оценка',
-        validators=[score_min_validator, score_max_validator],
-        help_text='Введите оценку от 1 до 10.'
+        validators=(
+            MinValueValidator(
+                SCORE_MIN,
+                message=f"Нельзя поставить оценку ниже {SCORE_MIN}.",
+            ),
+            MaxValueValidator(
+                SCORE_MAX,
+                message=f"Нельзя поставить оценку выше {SCORE_MAX}.",
+            ),
+        ),
+        help_text=f'Введите оценку от {SCORE_MIN} до {SCORE_MAX}.'
     )
 
     class Meta:
