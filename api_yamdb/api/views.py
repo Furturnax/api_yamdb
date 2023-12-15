@@ -4,10 +4,10 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
@@ -46,6 +46,7 @@ class GenreCategoryMixin(
     permission_classes = (IsAdminOrReadOnly,)
     search_fields = ('name',)
     lookup_field = 'slug'
+    filter_backends = (SearchFilter,)
 
 
 class GenreViewSet(GenreCategoryMixin):
@@ -53,7 +54,6 @@ class GenreViewSet(GenreCategoryMixin):
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (SearchFilter,)
 
 
 class CategoryViewSet(GenreCategoryMixin):
@@ -61,22 +61,31 @@ class CategoryViewSet(GenreCategoryMixin):
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (SearchFilter,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     """View-класс для произведения."""
 
     permission_classes = (IsAdminOrReadOnly,)
-    queryset = Title.objects.annotate(rating=Avg('reviews__score')).all()
     serializer_class = TitleGetSerializer
-    filter_backends = (DjangoFilterBackend,)
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
     filterset_class = TitleFilter
+    ordering_fields = ['rating']
     http_method_names = ('get', 'post', 'patch', 'delete')
+
+    def get_queryset(self):
+        """
+        Возвращает отсортированные произведения с аннотацией рейтинга.
+        """
+        queryset = Title.objects.annotate(
+            rating=Avg('reviews__score')
+        ).order_by('rating').all()
+        queryset = self.filter_queryset(queryset)
+        return queryset
 
     def get_serializer_class(self):
         """Определяет класс сериализатора в зависимости от типа запроса."""
-        if self.action in ('list', 'retrieve'):
+        if self.request.method in SAFE_METHODS:
             return TitleGetSerializer
         return TitleWriteSerializer
 
@@ -134,35 +143,34 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=('get', 'patch'),
-        permission_classes=(IsAuthenticated,),
+        methods=['get'],
+        permission_classes=[IsAuthenticated],
         url_path=CANT_USED_IN_USERNAME,
     )
-    def user_data_operations(self, request):
+    def get_user_data(self, request):
         """
-        GET: Получение данных пользователя.
-        PATCH: Частичное обновление данных пользователя.
+        Получение данных пользователя.
         """
-        if request.method == 'GET':
-            serializer = UserSerializer(request.user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'PATCH':
-            serializer = UserSerializer(
-                request.user, partial=True, data=request.data
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {'message': 'Метод не поддерживается'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @get_user_data.mapping.patch
+    def update_user_data(self, request):
+        """
+        Частичное обновление данных пользователя.
+        """
+        serializer = UserSerializer(
+            request.user,
+            partial=True,
+            data=request.data
         )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class APISignup(APIView):
     """Создает нового пользователя."""
-
-    permission_classes = (AllowAny,)
 
     def validate_user_data(self, data):
         """Возвращает валидные данные."""
@@ -200,8 +208,6 @@ class APISignup(APIView):
 
 class APIGetToken(APIView):
     """Работа с JWT токеном."""
-
-    permission_classes = (AllowAny,)
 
     def validate_request_data(self, request_data):
         """Возвращает вылидные данные из запроса."""
