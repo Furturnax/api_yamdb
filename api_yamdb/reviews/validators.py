@@ -1,26 +1,27 @@
 import re
 
-from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError
+
+from api_yamdb.consts import CANT_USED_IN_USERNAME
 
 
 def username_validator(value):
     """Валидатор юзернейна на недопустимые символы и запрещенные слова."""
-    if not re.search(r'^[\w.@+-]+\Z', value):
+    cleaned_value = re.sub(r'[^\w.@+-]', '', value)
+    if cleaned_value != value:
+        invalid_characters = set(re.findall(r'[^\w.@+-]', value))
         raise ValidationError(
-            (
-                'Недопустимые символы в username. '
-                'username может содержать только буквы, цифры и '
-                'знаки @/./+/-/_.'
-            ),
+            f'Недопустимые символы {invalid_characters} в username. '
+            'username может содержать только буквы, цифры и '
+            'знаки @/./+/-/_.'
         )
-    if value.lower() == settings.CANT_USED_IN_USERNAME:
+    if value.lower() == CANT_USED_IN_USERNAME:
         raise ValidationError(
-            f'Использовать {settings.CANT_USED_IN_USERNAME} как '
+            f'Использовать {CANT_USED_IN_USERNAME} как '
             'username запрещено.'
         )
+    return value
 
 
 def year_validator(value):
@@ -28,19 +29,4 @@ def year_validator(value):
     current_year = now().year
     if value > current_year:
         raise ValidationError('Год не может быть позже текущего года.')
-
-
-def score_min_validator(value):
-    """Валидатор минимальной оценки."""
-    return MinValueValidator(
-        settings.SCORE_MIN,
-        message=f'Нельзя поставить оценку ниже {settings.SCORE_MIN}.',
-    )(value)
-
-
-def score_max_validator(value):
-    """Валидатор максимальной оценки."""
-    return MaxValueValidator(
-        settings.SCORE_MAX,
-        message=f'Нельзя поставить оценку выше {settings.SCORE_MAX}.',
-    )(value)
+    return value

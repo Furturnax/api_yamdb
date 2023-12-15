@@ -94,6 +94,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
 
 REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
@@ -109,25 +112,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-AUTH_USER_MODEL = 'users.CustomUser'
-
-MAX_LENGTH: int = 30
-
-LENGTH_50_CHAR: int = 50
-
-LENGTH_150_CHAR: int = 150
-
-LENGTH_254_CHAR: int = 254
-
-LENGTH_256_CHAR: int = 256
-
-SCORE_MIN: int = 1
-
-SCORE_MAX: int = 10
-
-CANT_USED_IN_USERNAME: str = 'me'
-
-USER_PROFILE_LINK: str = 'me'
+AUTH_USER_MODEL = 'users.User'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 

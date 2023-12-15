@@ -45,10 +45,14 @@ router_v1.register(
     basename='comments'
 )
 
+auth_patterns = [
+    path('token/', APIGetToken.as_view(), name='get_token'),
+    path('signup/', APISignup.as_view(), name='signup'),
+]
+
 v1_patterns = [
     path('', include(router_v1.urls)),
-    path('auth/token/', APIGetToken.as_view(), name='get_token'),
-    path('auth/signup/', APISignup.as_view(), name='signup'),
+    path('auth/', include(auth_patterns)),
 ]
 
 urlpatterns = [

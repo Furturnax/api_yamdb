@@ -1,12 +1,15 @@
 from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.tokens import AccessToken
 
-from api.mixins import AdminUserSerializer, AuthorSerializer, TitleSerializer
-from reviews.validators import username_validator
+from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
 from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import CustomUser
+from reviews.validators import username_validator
+from users.models import User
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -14,7 +17,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = ('name', 'slug',)
+        fields = ('name', 'slug')
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,18 +25,24 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('name', 'slug',)
+        fields = ('name', 'slug')
 
 
-class TitleGetSerializer(TitleSerializer):
+class TitleGetSerializer(serializers.ModelSerializer):
     """Сериализатор для получения произведений."""
 
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
     rating = serializers.IntegerField(read_only=True)
 
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category', 'rating'
+        )
 
-class TitleWriteSerializer(TitleSerializer):
+
+class TitleWriteSerializer(serializers.ModelSerializer):
     """Сериализатор для изменения произведений."""
 
     category = serializers.SlugRelatedField(
@@ -46,24 +55,54 @@ class TitleWriteSerializer(TitleSerializer):
         many=True
     )
 
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'year', 'description', 'genre', 'category')
+
+    def to_representation(self, instance):
+        """Переопределение to_representation для изменения вывода данных."""
+        representation = super().to_representation(instance)
+        title_get_serializer = TitleGetSerializer(instance)
+        representation.update(title_get_serializer.data)
+        return representation
+
+    def validate_genre(self, value):
+        """Проверка валидности списка жанров."""
+        if not value:
+            raise ValidationError('Жанр обязателен.')
+        return value
+
+
+class AuthorSerializer(serializers.ModelSerializer):
+    """Миксин сериализатор поля автора."""
+
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username',
+        default=serializers.CurrentUserDefault(),
+    )
+
 
 class ReviewSerializer(AuthorSerializer):
     """Сериализатор для отзывов."""
 
-    class Meta(AuthorSerializer.Meta):
+    class Meta():
         model = Review
+        fields = ('id', 'title', 'score', 'author', 'text', 'pub_date')
         read_only_fields = ('title',)
 
     def validate(self, data):
+        """Проверяет, что пользователь может оставить только один отзыв."""
         request = self.context.get('request')
         if request.method != 'POST':
             return data
-        title = get_object_or_404(
-            Title, pk=self.context['view'].kwargs.get('title_id')
-        )
-        if title.reviews.filter(author=request.user).exists():
+        title_id = self.context['view'].kwargs.get('title_id')
+        if Review.objects.filter(
+            title_id=title_id,
+            author=request.user
+        ).exists():
             raise ValidationError(
-                'Можно оставить только один отзыв на произведение!'
+                'Можно оставить только один отзыв на произведение.'
             )
         return data
 
@@ -71,9 +110,25 @@ class ReviewSerializer(AuthorSerializer):
 class CommentSerializer(AuthorSerializer):
     """Сериализатор для произведений."""
 
-    class Meta(AuthorSerializer.Meta):
+    class Meta:
         model = Comment
+        fields = ('id', 'review', 'author', 'text', 'pub_date')
         read_only_fields = ('review',)
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для администратора."""
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )
 
 
 class UserSerializer(AdminUserSerializer):
@@ -90,38 +145,68 @@ class SignUpSerializer(serializers.Serializer):
     """Сериализатор для регистрации пользователя."""
 
     username = serializers.CharField(
-        max_length=settings.LENGTH_150_CHAR,
+        max_length=LENGTH_150_CHAR,
         required=True,
-        validators=[username_validator],
+        validators=(username_validator,),
     )
     email = serializers.EmailField(
-        max_length=settings.LENGTH_254_CHAR,
+        max_length=LENGTH_254_CHAR,
         required=True,
     )
 
     def validate(self, value):
         """Возвращает валидные данные."""
-        user_data = CustomUser.objects.filter(
+        user_data = User.objects.filter(
             username=value.get('username'),
             email=value.get('email')
         )
-        if not user_data.exists():
-            if CustomUser.objects.filter(username=value.get('username')):
-                raise ValidationError(
-                    'Пользователь с таким username существует.'
-                )
-            if CustomUser.objects.filter(email=value.get('email')):
-                raise ValidationError('Пользователь с таким email существует.')
+        if user_data.exists():
+            return value
+        if User.objects.filter(username=value.get('username')):
+            raise ValidationError(
+                'Пользователь с таким username существует.'
+            )
+        if User.objects.filter(email=value.get('email')):
+            raise ValidationError(
+                'Пользователь с таким email существует.'
+            )
         return value
+
+    def create(self, validated_data):
+        """Создает пользователя и отправляет письмо с confirmation code."""
+        user, created = User.objects.get_or_create(**validated_data)
+        confirmation_code = default_token_generator.make_token(user)
+        send_mail(
+            subject='Регистрация на сайте YaMDb',
+            message=f'Код для подтверждения регистрации: {confirmation_code}',
+            from_email=settings.FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+        return user
 
 
 class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
     username = serializers.CharField(
-        max_length=settings.LENGTH_150_CHAR,
+        max_length=LENGTH_150_CHAR,
         required=True,
     )
     confirmation_code = serializers.CharField(
         required=True,
     )
+
+    def create(self, validated_data):
+        """Создает JWT токен для пользователя из предоставленных данных."""
+        username, confirmation_code = validated_data.values()
+        user = get_object_or_404(User, username=username)
+        confirmation_check = default_token_generator.check_token(
+            user, confirmation_code
+        )
+        if not confirmation_check:
+            raise ValidationError(
+                {'confirmation_code': 'Код подтверждения неверный'}
+            )
+        token = AccessToken.for_user(user)
+        return {'token': str(token)}
