@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+
 from api.mixins import AdminUserSerializer, AuthorSerializer, TitleSerializer
 from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
 from reviews.validators import username_validator
@@ -14,7 +15,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = ('name', 'slug',)
+        fields = ('name', 'slug')
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,18 +23,24 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('name', 'slug',)
+        fields = ('name', 'slug')
 
 
-class TitleGetSerializer(TitleSerializer):
+class TitleGetSerializer(serializers.ModelSerializer):
     """Сериализатор для получения произведений."""
 
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
     rating = serializers.IntegerField(read_only=True)
 
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category', 'rating'
+        )
 
-class TitleWriteSerializer(TitleSerializer):
+
+class TitleWriteSerializer(serializers.ModelSerializer):
     """Сериализатор для изменения произведений."""
 
     category = serializers.SlugRelatedField(
@@ -45,6 +52,23 @@ class TitleWriteSerializer(TitleSerializer):
         slug_field='slug',
         many=True
     )
+
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'year', 'description', 'genre', 'category')
+
+
+class AuthorSerializer(serializers.ModelSerializer):
+    """Миксин сериализатор поля автора."""
+
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username',
+        default=serializers.CurrentUserDefault(),
+    )
+
+    class Meta:
+        fields = '__all__'
 
 
 class ReviewSerializer(AuthorSerializer):
@@ -74,6 +98,21 @@ class CommentSerializer(AuthorSerializer):
     class Meta(AuthorSerializer.Meta):
         model = Comment
         read_only_fields = ('review',)
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для администратора."""
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )
 
 
 class UserSerializer(AdminUserSerializer):
