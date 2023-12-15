@@ -8,19 +8,20 @@ from api_yamdb.consts import CANT_USED_IN_USERNAME
 
 def username_validator(value):
     """Валидатор юзернейна на недопустимые символы и запрещенные слова."""
-    if not re.search(r'^[\w.@+-]+\Z', value):
+    cleaned_value = re.sub(r'[^\w.@+-]', '', value)
+    if cleaned_value != value:
+        invalid_characters = set(re.findall(r'[^\w.@+-]', value))
         raise ValidationError(
-            (
-                'Недопустимые символы в username. '
-                'username может содержать только буквы, цифры и '
-                'знаки @/./+/-/_.'
-            ),
+            f'Недопустимые символы {invalid_characters} в username. '
+            'username может содержать только буквы, цифры и '
+            'знаки @/./+/-/_.'
         )
     if value.lower() == CANT_USED_IN_USERNAME:
         raise ValidationError(
             f'Использовать {CANT_USED_IN_USERNAME} как '
             'username запрещено.'
         )
+    return value
 
 
 def year_validator(value):
@@ -28,3 +29,4 @@ def year_validator(value):
     current_year = now().year
     if value > current_year:
         raise ValidationError('Год не может быть позже текущего года.')
+    return value
