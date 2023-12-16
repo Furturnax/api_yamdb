@@ -128,11 +128,11 @@ class Review(TextAuthorPubdateModel):
         validators=(
             MinValueValidator(
                 SCORE_MIN,
-                message=f"Нельзя поставить оценку ниже {SCORE_MIN}.",
+                message=f'Нельзя поставить оценку ниже {SCORE_MIN}.',
             ),
             MaxValueValidator(
                 SCORE_MAX,
-                message=f"Нельзя поставить оценку выше {SCORE_MAX}.",
+                message=f'Нельзя поставить оценку выше {SCORE_MAX}.',
             ),
         ),
         help_text=f'Введите оценку от {SCORE_MIN} до {SCORE_MAX}.'

@@ -9,10 +9,10 @@ from api_yamdb.consts import CANT_USED_IN_USERNAME
 def username_validator(value):
     """Валидатор юзернейна на недопустимые символы и запрещенные слова."""
     cleaned_value = re.sub(r'[^\w.@+-]', '', value)
-    if cleaned_value != value:
-        invalid_characters = set(re.findall(r'[^\w.@+-]', value))
+    if set(value) - set(cleaned_value):
+        invalid_characters = set(value) - set(cleaned_value)
         raise ValidationError(
-            f'Недопустимые символы {invalid_characters} в username. '
+            f'Недопустимые символы {"".join(invalid_characters)}в username. '
             'username может содержать только буквы, цифры и '
             'знаки @/./+/-/_.'
         )

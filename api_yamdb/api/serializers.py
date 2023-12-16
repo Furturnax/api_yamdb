@@ -61,10 +61,8 @@ class TitleWriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Переопределение to_representation для изменения вывода данных."""
-        representation = super().to_representation(instance)
         title_get_serializer = TitleGetSerializer(instance)
-        representation.update(title_get_serializer.data)
-        return representation
+        return title_get_serializer.data
 
     def validate_genre(self, value):
         """Проверка валидности списка жанров."""
