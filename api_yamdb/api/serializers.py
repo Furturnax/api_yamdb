@@ -4,9 +4,8 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework_simplejwt.tokens import AccessToken
 
-from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
+from api_yamdb.consts import LENGTH_EMAIL, LENGTH_USERNAME
 from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.validators import username_validator
 from users.models import User
@@ -61,10 +60,8 @@ class TitleWriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Переопределение to_representation для изменения вывода данных."""
-        representation = super().to_representation(instance)
         title_get_serializer = TitleGetSerializer(instance)
-        representation.update(title_get_serializer.data)
-        return representation
+        return title_get_serializer.data
 
     def validate_genre(self, value):
         """Проверка валидности списка жанров."""
@@ -145,12 +142,12 @@ class SignUpSerializer(serializers.Serializer):
     """Сериализатор для регистрации пользователя."""
 
     username = serializers.CharField(
-        max_length=LENGTH_150_CHAR,
+        max_length=LENGTH_USERNAME,
         required=True,
         validators=(username_validator,),
     )
     email = serializers.EmailField(
-        max_length=LENGTH_254_CHAR,
+        max_length=LENGTH_EMAIL,
         required=True,
     )
 
@@ -190,23 +187,23 @@ class GetTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
     username = serializers.CharField(
-        max_length=LENGTH_150_CHAR,
+        max_length=LENGTH_USERNAME,
         required=True,
     )
     confirmation_code = serializers.CharField(
         required=True,
     )
 
-    def create(self, validated_data):
-        """Создает JWT токен для пользователя из предоставленных данных."""
-        username, confirmation_code = validated_data.values()
+    def validate(self, data):
+        """Валидирует данные пользователя для JWT токена."""
+        username, confirmation_code = data.values()
         user = get_object_or_404(User, username=username)
-        confirmation_check = default_token_generator.check_token(
+        if not default_token_generator.check_token(
             user, confirmation_code
-        )
-        if not confirmation_check:
+        ):
             raise ValidationError(
                 {'confirmation_code': 'Код подтверждения неверный'}
             )
-        token = AccessToken.for_user(user)
-        return {'token': str(token)}
+        user.is_active = True
+        user.save()
+        return data
