@@ -2,32 +2,33 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from api_yamdb.consts import LENGTH_150_CHAR, LENGTH_254_CHAR
+from api_yamdb.consts import LENGTH_EMAIL, LENGTH_USERNAME
 from reviews.validators import username_validator
-
-
-class UserRole(models.TextChoices):
-    USER = 'user', _('Пользователь')
-    ADMIN = 'admin', _('Администратор')
-    MODERATOR = 'moderator', _('Модератор')
 
 
 class User(AbstractUser):
     """Модель переопределенного юзера."""
 
+    class Role(models.TextChoices):
+        """Класс определенных ролей."""
+
+        USER = 'user', _('Пользователь')
+        ADMIN = 'admin', _('Администратор')
+        MODERATOR = 'moderator', _('Модератор')
+
     username = models.CharField(
         'Юзернейм',
-        max_length=LENGTH_150_CHAR,
+        max_length=LENGTH_USERNAME,
         unique=True,
         validators=(username_validator,),
     )
     email = models.EmailField(
         'Электронная почта',
-        max_length=LENGTH_254_CHAR,
+        max_length=LENGTH_EMAIL,
         unique=True,
         help_text=(
             'Укажите уникальный юзернейм. Может содержать до '
-            f'{LENGTH_150_CHAR} символов.'
+            f'{LENGTH_USERNAME} символов.'
         ),
     )
     bio = models.TextField(
@@ -36,9 +37,9 @@ class User(AbstractUser):
     )
     role = models.CharField(
         'Роль',
-        max_length=max(len(role) for role in UserRole.values),
-        choices=UserRole.choices,
-        default=UserRole.USER,
+        max_length=max(len(role) for role in Role.values),
+        choices=Role.choices,
+        default=Role.USER,
     )
 
     class Meta:
@@ -51,8 +52,8 @@ class User(AbstractUser):
 
     @property
     def is_moderator(self):
-        return self.role == UserRole.MODERATOR
+        return self.role == self.Role.MODERATOR
 
     @property
     def is_admin(self):
-        return self.role == UserRole.ADMIN or self.is_superuser
+        return self.role == self.Role.ADMIN or self.is_superuser

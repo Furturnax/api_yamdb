@@ -2,9 +2,9 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from api_yamdb.consts import (
-    LENGTH_50_CHAR,
-    LENGTH_256_CHAR,
     MAX_LENGTH,
+    LENGTH_NAME,
+    LENGTH_SLUG,
     SCORE_MAX,
     SCORE_MIN
 )
@@ -17,12 +17,12 @@ class NameSlugModel(models.Model):
 
     name = models.CharField(
         'Название',
-        max_length=LENGTH_256_CHAR,
+        max_length=LENGTH_NAME,
         db_index=True,
     )
     slug = models.SlugField(
         'Слаг названия',
-        max_length=LENGTH_50_CHAR,
+        max_length=LENGTH_SLUG,
         unique=True,
     )
 
@@ -55,7 +55,7 @@ class Title(models.Model):
 
     name = models.CharField(
         'Название',
-        max_length=LENGTH_256_CHAR,
+        max_length=LENGTH_NAME,
     )
     year = models.SmallIntegerField(
         'Год выпуска',

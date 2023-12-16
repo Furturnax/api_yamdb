@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
 
 from api.filters import TitleFilter
@@ -63,21 +64,14 @@ class TitleViewSet(viewsets.ModelViewSet):
     """View-класс для произведения."""
 
     permission_classes = (IsAdminOrReadOnly,)
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')
+    ).order_by('rating').all()
     serializer_class = TitleGetSerializer
     filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
     filterset_class = TitleFilter
-    ordering_fields = ('rating',)
+    ordering_fields = ('rating', 'year', 'name')
     http_method_names = ('get', 'post', 'patch', 'delete')
-
-    def get_queryset(self):
-        """
-        Возвращает отсортированные произведения с аннотацией рейтинга.
-        """
-        queryset = Title.objects.annotate(
-            rating=Avg('reviews__score')
-        ).order_by('rating').all()
-        queryset = self.filter_queryset(queryset)
-        return queryset
 
     def get_serializer_class(self):
         """Определяет класс сериализатора в зависимости от типа запроса."""
@@ -167,11 +161,10 @@ class APISignup(APIView):
     def post(self, request):
         """Обрабатывает POST-запрос для регистрации пользователя."""
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            validated_data = serializer.validated_data
-            serializer.create(validated_data)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        serializer.create(validated_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class APIGetToken(APIView):
@@ -180,7 +173,7 @@ class APIGetToken(APIView):
     def post(self, request):
         """Обрабатывает POST-запрос для генерации токена."""
         serializer = GetTokenSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            token_data = serializer.save()
-            return Response(token_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        access_token = AccessToken.for_user()
+        access_token_data = {'token': str(access_token)}
+        return Response(access_token_data, status=status.HTTP_200_OK)
